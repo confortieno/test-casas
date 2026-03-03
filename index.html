@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Test de Casas</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card: rgba(255,255,255,0.06);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.70);
+      --border: rgba(255,255,255,0.12);
+      --focus: rgba(255,255,255,0.28);
+      --danger: #ff5a6a;
+      --ok: #36d399;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:
+        radial-gradient(1000px 600px at 20% 10%, rgba(110, 80, 255, 0.25), transparent 60%),
+        radial-gradient(900px 500px at 80% 20%, rgba(0, 190, 255, 0.18), transparent 55%),
+        var(--bg);
+      color: var(--text);
+    }
+    .container{ max-width: 980px; margin: 28px auto; padding: 0 16px 40px; }
+    .header h1{ margin:0 0 8px; font-size: 34px; }
+    .header p{ margin:0; color: var(--muted); }
+    .card{
+      margin-top: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+    }
+    .section + .section{ margin-top: 18px; }
+    .section h2{ margin: 0 0 10px; font-size: 20px; }
+    .muted{ color: var(--muted); }
+    .field{ display:grid; gap: 8px; margin-top: 12px; }
+    .field span{ font-weight: 700; }
+    input[type="text"], input[type="email"]{
+      width:100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.18);
+      color: var(--text);
+      outline:none;
+    }
+    input:focus{
+      border-color: var(--focus);
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
+    }
+    small{ color: var(--muted); }
+    fieldset.q{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin: 12px 0 0;
+      background: rgba(0,0,0,0.12);
+    }
+    fieldset.q legend{ font-weight: 800; padding: 0 4px; }
+    .options{ display:grid; gap:10px; margin-top: 10px; }
+    label.opt{
+      display:flex; gap: 10px; align-items:center;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      cursor:pointer;
+    }
+    label.opt:hover{ border-color: rgba(255,255,255,0.22); }
+    label.opt input{ transform: scale(1.1); }
+    .actions{ display:flex; gap: 10px; flex-wrap: wrap; align-items:center; }
+    button{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.10);
+      color: var(--text);
+      font-weight: 800;
+      cursor:pointer;
+    }
+    button:hover{ border-color: rgba(255,255,255,0.25); }
+    button.secondary{ background: transparent; }
+    .status{ margin-top: 12px; min-height: 22px; color: var(--muted); }
+    .status.error{ color: var(--danger); }
+    .status.ok{ color: var(--ok); }
+    .hidden{ display:none; }
+    pre{
+      white-space: pre-wrap;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      overflow:auto;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Test de Casas</h1>
+      <p class="muted">Completá el formulario, respondé 10 preguntas y recibí el resultado por email.</p>
+    </header>
+
+    <form id="quizForm" class="card" novalidate>
+      <section class="section">
+        <h2>Datos</h2>
+        <label class="field">
+          <span>Nombre</span>
+          <input id="name" name="name" type="text" autocomplete="name" required minlength="2" />
+          <small>Ingresá tu nombre.</small>
+        </label>
+        <label class="field">
+          <span>Email</span>
+          <input id="email" name="email" type="email" autocomplete="email" required />
+          <small>Ahí te enviamos el resultado (y también a confortienzo@gmail.com).</small>
+        </label>
+      </section>
+
+      <section class="section">
+        <h2>Preguntas</h2>
+        <p class="muted">Elegí una opción por pregunta.</p>
+        <div id="questions"></div>
+      </section>
+
+      <section class="section actions">
+        <button id="submitBtn" type="submit">Ver resultado y enviar</button>
+        <button id="resetBtn" type="button" class="secondary">Reiniciar</button>
+      </section>
+
+      <section id="status" class="status" aria-live="polite"></section>
+    </form>
+
+    <section id="resultCard" class="card hidden">
+      <h2>Resultado</h2>
+      <p id="resultText"></p>
+      <details>
+        <summary>Ver detalle de puntajes</summary>
+        <pre id="scoreBreakdown"></pre>
+      </details>
+    </section>
+  </main>
+
+  <!-- EmailJS (para envío sin backend) -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <script>
+    /************************************************************
+     * 1) CONFIG EMAILJS (REEMPLAZAR CON TUS DATOS)
+     ************************************************************/
+    const EMAILJS_PUBLIC_KEY  = "UePvlucNn5oXJNwM5";
+    const EMAILJS_SERVICE_ID  = "service_85xbwg8";
+    const EMAILJS_TEMPLATE_ID = "template_6yem64s";
+
+    // Copia oculta siempre (además del email ingresado)
+    const ALWAYS_CC_EMAIL = "confortienzo@gmail.com";
+
+    /************************************************************
+     * 2) EDITÁ LAS PREGUNTAS ACÁ
+     * - Cada pregunta tiene 4 opciones
+     * - Cada opción suma 1 punto a una casa (house)
+     ************************************************************/
+    const HOUSES = {
+      GRIFFIN: "Griffin",
+      SERPENT: "Serpent",
+      EAGLE: "Eagle",
+      BADGER: "Badger",
+    };
+
+    const QUESTIONS = [
+      {
+        text: "1) ¿Qué valor te representa más?",
+        options: [
+          { label: "Valentía", house: HOUSES.GRIFFIN },
+          { label: "Ambición", house: HOUSES.SERPENT },
+          { label: "Curiosidad", house: HOUSES.EAGLE },
+          { label: "Lealtad", house: HOUSES.BADGER },
+        ],
+      },
+      {
+        text: "2) Ante un problema, vos…",
+        options: [
+          { label: "Actuás rápido", house: HOUSES.GRIFFIN },
+          { label: "Buscás la mejor ventaja", house: HOUSES.SERPENT },
+          { label: "Analizás todas las variables", house: HOUSES.EAGLE },
+          { label: "Te apoyás en tu equipo", house: HOUSES.BADGER },
+        ],
+      },
+      {
+        text: "3) En un grupo, solés ser…",
+        options: [
+          { label: "Quien lidera", house: HOUSES.GRIFFIN },
+          { label: "Quien negocia", house: HOUSES.SERPENT },
+          { label: "Quien propone ideas", house: HOUSES.EAGLE },
+          { label: "Quien sostiene el orden", house: HOUSES.BADGER },
+        ],
+      },
+      {
+        text: "4) Elegí un plan ideal:",
+        options: [
+          { label: "Aventura improvisada", house: HOUSES.GRIFFIN },
+          { label: "Evento exclusivo", house: HOUSES.SERPENT },
+          { label: "Museo/libros/documental", house: HOUSES.EAGLE },
+          { label: "Asado con amigos", house: HOUSES.BADGER },
+        ],
+      },
+      {
+        text: "5) ¿Qué te molesta más?",
+        options: [
+          { label: "La cobardía", house: HOUSES.GRIFFIN },
+          { label: "La mediocridad", house: HOUSES.SERPENT },
+          { label: "La ignorancia", house: HOUSES.EAGLE },
+          { label: "La deslealtad", house: HOUSES.BADGER },
+        ],
+      },
+      {
+        text: "6) Preferís que te reconozcan por…",
+        options: [
+          { label: "Tu coraje", house: HOUSES.GRIFFIN },
+          { label: "Tu éxito", house: HOUSES.SERPENT },
+          { label: "Tu inteligencia", house: HOUSES.EAGLE },
+          { label: "Tu confiabilidad", house: HOUSES.BADGER },
+        ],
+      },
+      {
+        text: "7) Si te ofrecen un desafío difícil…",
+        options: [
+          { label: "Lo tomás de una", house: HOUSES.GRIFFIN },
+          { label: "Lo tomás si te conviene", house: HOUSES.SERPENT },
+          { label: "Pedís más info primero", house: HOUSES.EAGLE },
+          { label: "Lo hacés con apoyo", house: HOUSES.BADGER },
+        ],
+      },
+      {
+        text: "8) ¿Cómo estudiás/trabajás mejor?",
+        options: [
+          { label: "Con presión y adrenalina", house: HOUSES.GRIFFIN },
+          { label: "Con metas claras", house: HOUSES.SERPENT },
+          { label: "Con investigación y notas", house: HOUSES.EAGLE },
+          { label: "Con rutina estable", house: HOUSES.BADGER },
+        ],
+      },
+      {
+        text: "9) Elegí una cualidad extra:",
+        options: [
+          { label: "Audacia", house: HOUSES.GRIFFIN },
+          { label: "Determinación", house: HOUSES.SERPENT },
+          { label: "Creatividad", house: HOUSES.EAGLE },
+          { label: "Paciencia", house: HOUSES.BADGER },
+        ],
+      },
+      {
+        text: "10) Tu frase sería…",
+        options: [
+          { label: "“Vamos, sin miedo.”", house: HOUSES.GRIFFIN },
+          { label: "“Voy por más.”", house: HOUSES.SERPENT },
+          { label: "“Quiero entenderlo.”", house: HOUSES.EAGLE },
+          { label: "“Cuenta conmigo.”", house: HOUSES.BADGER },
+        ],
+      },
+    ];
+
+    /************************************************************
+     * 3) LOGICA UI + CALCULO + ENVIO
+     ************************************************************/
+    const elForm = document.getElementById("quizForm");
+    const elQuestions = document.getElementById("questions");
+    const elStatus = document.getElementById("status");
+    const elResultCard = document.getElementById("resultCard");
+    const elResultText = document.getElementById("resultText");
+    const elScoreBreakdown = document.getElementById("scoreBreakdown");
+    const elResetBtn = document.getElementById("resetBtn");
+
+    // Inicializar EmailJS si está configurado
+    function initEmailJS() {
+      const hasKeys =
+        EMAILJS_PUBLIC_KEY !== "TU_PUBLIC_KEY" &&
+        EMAILJS_SERVICE_ID !== "TU_SERVICE_ID" &&
+        EMAILJS_TEMPLATE_ID !== "TU_TEMPLATE_ID";
+
+      if (!window.emailjs) return false;
+      if (!hasKeys) return false;
+
+      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+      return true;
+    }
+
+    const emailjsReady = initEmailJS();
+
+    function setStatus(msg, kind = "") {
+      elStatus.textContent = msg || "";
+      elStatus.className = "status" + (kind ? " " + kind : "");
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderQuestions() {
+      elQuestions.innerHTML = "";
+
+      QUESTIONS.forEach((q, idx) => {
+        const qIndex = idx + 1;
+        const fs = document.createElement("fieldset");
+        fs.className = "q";
+
+        const legend = document.createElement("legend");
+        legend.textContent = q.text;
+        fs.appendChild(legend);
+
+        const opts = document.createElement("div");
+        opts.className = "options";
+
+        q.options.forEach((opt, oidx) => {
+          const id = `q${qIndex}_opt${oidx}`;
+          const label = document.createElement("label");
+          label.className = "opt";
+          label.setAttribute("for", id);
+
+          label.innerHTML = `
+            <input id="${id}" type="radio" name="q${qIndex}" value="${escapeHtml(opt.house)}" required />
+            <span>${escapeHtml(opt.label)}</span>
+          `;
+
+          opts.appendChild(label);
+        });
+
+        fs.appendChild(opts);
+        elQuestions.appendChild(fs);
+      });
+    }
+
+    function computeHouse() {
+      const scores = {
+        [HOUSES.GRIFFIN]: 0,
+        [HOUSES.SERPENT]: 0,
+        [HOUSES.EAGLE]: 0,
+        [HOUSES.BADGER]: 0,
+      };
+
+      for (let i = 1; i <= QUESTIONS.length; i++) {
+        const checked = elForm.querySelector(`input[name="q${i}"]:checked`);
+        if (!checked) return { ok: false, scores, house: null };
+        const house = checked.value;
+        if (scores[house] === undefined) scores[house] = 0;
+        scores[house] += 1;
+      }
+
+      // Ganador por mayor puntaje, con desempate estable (orden HOUSES)
+      const order = [HOUSES.GRIFFIN, HOUSES.SERPENT, HOUSES.EAGLE, HOUSES.BADGER];
+      let winner = order[0];
+      for (const h of order) {
+        if (scores[h] > scores[winner]) winner = h;
+      }
+
+      return { ok: true, scores, house: winner };
+    }
+
+    function buildEmailPayload({ name, email, house, scores }) {
+      // Texto para email
+      const lines = [
+        `Nombre: ${name}`,
+        `Email: ${email}`,
+        `Casa asignada: ${house}`,
+        "",
+        "Detalle de puntajes:",
+        ...Object.entries(scores).map(([k,v]) => `- ${k}: ${v}`),
+      ];
+
+      return {
+        // Ajustá estas keys a tu template de EmailJS
+        to_email: email,                 // destinatario principal (el mail del form)
+        cc_email: ALWAYS_CC_EMAIL,        // copia adicional fija
+        user_name: name,
+        user_email: email,
+        result_house: house,
+        score_breakdown: lines.join("\n"),
+      };
+    }
+
+    async function sendResultEmail(payload) {
+      if (!emailjsReady) {
+        throw new Error(
+          "EmailJS no está configurado. Reemplazá TU_PUBLIC_KEY / TU_SERVICE_ID / TU_TEMPLATE_ID por tus valores."
+        );
+      }
+      // Requiere un template que use to_email y cc_email (o que tu template mande a ambos)
+      return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload);
+    }
+
+    elForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setStatus("");
+
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+
+      // Validaciones básicas
+      if (name.length < 2) {
+        setStatus("Ingresá un nombre válido.", "error");
+        return;
+      }
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        setStatus("Ingresá un email válido.", "error");
+        return;
+      }
+
+      const { ok, scores, house } = computeHouse();
+      if (!ok) {
+        setStatus("Te falta responder alguna pregunta.", "error");
+        return;
+      }
+
+      // Mostrar resultado en pantalla
+      elResultCard.classList.remove("hidden");
+      elResultText.textContent = `${name}, tu casa es: ${house}`;
+      elScoreBreakdown.textContent = Object.entries(scores)
+        .map(([k,v]) => `${k}: ${v}`)
+        .join("\n");
+
+      // Enviar email
+      const payload = buildEmailPayload({ name, email, house, scores });
+
+      try {
+        setStatus("Enviando email...", "");
+        await sendResultEmail(payload);
+        setStatus("¡Listo! Resultado enviado por email.", "ok");
+      } catch (err) {
+        console.error(err);
+        setStatus(
+          "Mostré el resultado en pantalla, pero falló el envío por email. Revisá la configuración de EmailJS.",
+          "error"
+        );
+      }
+    });
+
+    elResetBtn.addEventListener("click", () => {
+      elForm.reset();
+      elResultCard.classList.add("hidden");
+      setStatus("");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    renderQuestions();
+
+    // Mensaje útil si no configuraron EmailJS
+    if (!emailjsReady) {
+      setStatus(
+        "Nota: Para enviar emails, configurá EmailJS (reemplazá TU_PUBLIC_KEY / TU_SERVICE_ID / TU_TEMPLATE_ID).",
+        ""
+      );
+    }
+
+    /************************************************************
+     * 4) EMAILJS TEMPLATE (qué variables usar)
+     *
+     * En tu EmailJS Template, usá por ejemplo:
+     * - To Email: {{to_email}}
+     * - CC (si tu template soporta cc): {{cc_email}}
+     * - Subject: Resultado del Test de Casas - {{user_name}}
+     * - Body:
+     *   Hola {{user_name}},
+     *   Tu resultado es: {{result_house}}
+     *
+     *   {{score_breakdown}}
+     *
+     * Si EmailJS no te deja CC en el template según tu plan,
+     * alternativa: crear 2 templates y mandar 2 emails (uno al usuario y otro a tu mail).
+     ************************************************************/
+  </script>
+</body>
+</html>
