@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablero — pantalla</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0d0d0d; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .grid { display: grid; grid-auto-flow: dense; gap: 0; width: 100vw; height: 100vh; background: #1a1a19; }
+  .tile { padding: 18px 20px; min-height: 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); transition: transform .6s cubic-bezier(.2,.7,.15,1), opacity .5s ease; transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; overflow: hidden; }
+  .tile-enter { opacity: 0; transform: var(--enter-from, scale(.82)); }
+  .tile-title, .tile-sub { color: #ffffff; }
+  .tile-title { font-size: clamp(22px, 2.8vw, 38px); font-weight: 700; line-height: 1.15; }
+  .tile-sub { font-size: clamp(20px, 2.6vw, 32px); opacity: .96; }
+  .tile-lg .tile-title { font-size: clamp(28px, 3.6vw, 48px); }
+  .tile-lg .tile-sub { font-size: clamp(24px, 3vw, 36px); }
+  .tile-xl .tile-title { font-size: clamp(34px, 4.6vw, 60px); }
+  .tile-xl .tile-sub { font-size: clamp(28px, 3.6vw, 44px); }
+  .tile-extra { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 11px; padding: 2px 9px; border-radius: 999px; background: rgba(255,255,255,.28); }
+  .empty-state { color: #898781; display:flex; align-items:center; justify-content:center; height:100%; font-size:16px; }
+</style>
+</head>
+<body>
+<div id="grid" class="grid"></div>
+<script>
+(function () {
+  "use strict";
+  var PALETTE = ["#3b3f45","#e35c7b","#82c6ed","#b37f53","#4282b4","#ffd970","#f5cdb7","#c1c56d"];
+  var HEADERS = ["Producto","Funcionalidad","Categoría"];
+  var DATA = [{"Producto":"Nordic SRL","Funcionalidad":"Personas totalmente predispuestas a escuchar nuestras dudas e inquietudes. ","Categoría":"Implementaciones"},{"Producto":"Nordic SRL","Funcionalidad":"Quedamos ampliamente satisfechos con la atención de Gabriela y Mariano muy atentos en todo momento y serviciales a la hora de enseñar.","Categoría":"Implementaciones"},{"Producto":"Audi Buenos Aires","Funcionalidad":"Destaco el profesionalismo de Marcelo, Andrés y Mariano. ","Categoría":"Implementaciones"},{"Producto":"Maxiauto SRL","Funcionalidad":"¡Excelente la asesoría de Melisa y Gabriela!","Categoría":"Implementaciones"},{"Producto":"Equipo negro se impuso por dos goles","Funcionalidad":"La participación de Argutti ha sido clave en la victoria.","Categoría":"Fútbol"},{"Producto":"AVA Documents","Funcionalidad":"Fue el asistente que más halagos recibió en la webinar de lanzamiento.","Categoría":"AVA"},{"Producto":"José Folmer sobre Martín Suarez","Funcionalidad":"Muy atentos, respuestas claras y rápidas.","Categoría":"Posventa"},{"Producto":"Chayé sobre Mariano","Funcionalidad":"Perfecto, Mariano además de resolver el inconveniente, me compartió la solución. Así para la próxima podemos ver si lo resolvemos nosotros antes. Excelente.","Categoría":"Posventa"},{"Producto":"Jalil sobre Guillermo","Funcionalidad":"Excelente atencion de Guillermo. Problema solucionado.","Categoría":"Posventa"},{"Producto":"Costa Motors sobre Julia","Funcionalidad":"Excelente atencion y respuesta de Julia.","Categoría":"Posventa"},{"Producto":"Sudisur sobre Giazmin","Funcionalidad":"El apoyo de Giazmin es fundamental para nosotros.","Categoría":"Posventa"}];
+  var ROWS = 3;
+  var COLS = 4;
+  var INTERVAL_MS = 15000;
+  var MAX_PER_WAVE = 10;
+  var gridEl = document.getElementById("grid");
+  function shuffle(arr) { var a = arr.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  var waveQueue = shuffle(DATA);
+  var waveOffset = 0;
+  function nextWave(n) { if (!waveQueue.length) return []; if (waveOffset >= waveQueue.length) { waveQueue = shuffle(waveQueue); waveOffset = 0; } var end = Math.min(waveOffset + n, waveQueue.length); var chunk = waveQueue.slice(waveOffset, end); waveOffset = end; return chunk; }
+  function hexToRgb(hex) { var m = hex.replace("#", ""); return [parseInt(m.substr(0,2),16), parseInt(m.substr(2,2),16), parseInt(m.substr(4,2),16)]; }
+  function relativeLuminance(hex) { var rgb = hexToRgb(hex).map(function(v){ v/=255; return v<=0.03928? v/12.92 : Math.pow((v+0.055)/1.055,2.4); }); return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2]; }
+  function contrastRatio(h1,h2){ var l1=relativeLuminance(h1)+0.05, l2=relativeLuminance(h2)+0.05; return l1>l2? l1/l2 : l2/l1; }
+  function bestTextColor(bg){ var white="#ffffff", dark="#0b0b0b"; return contrastRatio(bg,white) >= contrastRatio(bg,dark) ? white : dark; }
+  function buildColorAssignment(n){ var pool=[]; while(pool.length<n) pool=pool.concat(PALETTE); return shuffle(pool).slice(0,n); }
+  var IMAGE_HEADER_PATTERN = /imagen|image|foto|picture/i;
+  function findImageHeader(hdrs){ for (var i=0;i<hdrs.length;i++){ if (IMAGE_HEADER_PATTERN.test(hdrs[i])) return hdrs[i]; } return null; }
+  function isHttpUrl(v){ return typeof v === "string" && /^(https?:\/\/\S+|data:image\/\S+)/i.test(v.trim()); }
+  function applyTileBackground(tile, bg, imgUrl) {
+    tile.style.backgroundColor = bg;
+    if (isHttpUrl(imgUrl)) {
+      tile.style.backgroundImage = "linear-gradient(rgba(0,0,0,.32), rgba(0,0,0,.32)), url(" + JSON.stringify(imgUrl.trim()) + ")";
+      tile.style.backgroundSize = "cover, cover";
+      tile.style.backgroundPosition = "center, center";
+      tile.style.backgroundRepeat = "no-repeat, no-repeat";
+    }
+  }
+  function escapeHtml(str){ return String(str).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function splitRects(rect, count) {
+    if (count <= 1 || (rect.w <= 1 && rect.h <= 1)) return [rect];
+    var leftCount = Math.floor(count/2), rightCount = count - leftCount;
+    var canVertical = rect.w >= 2, canHorizontal = rect.h >= 2;
+    if (!canVertical && !canHorizontal) return [rect];
+    var vertical;
+    if (canVertical && canHorizontal) vertical = rect.w >= rect.h ? Math.random() < 0.75 : Math.random() < 0.25;
+    else vertical = canVertical;
+    var ratio = leftCount/count + (Math.random()-0.5)*0.3;
+    ratio = Math.min(0.85, Math.max(0.15, ratio));
+    if (vertical) {
+      var wLeft = Math.min(rect.w-1, Math.max(1, Math.round(rect.w*ratio)));
+      var leftRect = { x: rect.x, y: rect.y, w: wLeft, h: rect.h };
+      var rightRect = { x: rect.x+wLeft, y: rect.y, w: rect.w-wLeft, h: rect.h };
+      return splitRects(leftRect, leftCount).concat(splitRects(rightRect, rightCount));
+    } else {
+      var hTop = Math.min(rect.h-1, Math.max(1, Math.round(rect.h*ratio)));
+      var topRect = { x: rect.x, y: rect.y, w: rect.w, h: hTop };
+      var botRect = { x: rect.x, y: rect.y+hTop, w: rect.w, h: rect.h-hTop };
+      return splitRects(topRect, leftCount).concat(splitRects(botRect, rightCount));
+    }
+  }
+  function randomEnterTransform(){ var dist=60+Math.random()*90; var angle=Math.random()*Math.PI*2; var dx=Math.round(Math.cos(angle)*dist); var dy=Math.round(Math.sin(angle)*dist); var rot=(Math.random()*12-6).toFixed(1); return "translate("+dx+"px, "+dy+"px) rotate("+rot+"deg) scale(.85)"; }
+  function typeText(el, text, initialDelay, speed, onDone) {
+    text = text == null ? "" : String(text);
+    setTimeout(function () {
+      if (!text.length) { if (onDone) onDone(); return; }
+      var i = 0;
+      (function step(){ i++; el.textContent = text.slice(0,i); if (i<text.length) setTimeout(step, speed); else if (onDone) onDone(); })();
+    }, initialDelay);
+  }
+  function shrinkToFit(tile, titleEl, subEl, titleText, subText) {
+    titleEl.textContent = titleText;
+    if (subEl) subEl.textContent = subText;
+    var titleBase = parseFloat(getComputedStyle(titleEl).fontSize);
+    var subBase = subEl ? parseFloat(getComputedStyle(subEl).fontSize) : 0;
+    var scale = 1, guard = 0;
+    while (tile.scrollHeight > tile.clientHeight + 1 && guard < 30) {
+      scale -= 0.05;
+      var titlePx = Math.max(11, titleBase*scale);
+      var subPx = subEl ? Math.max(10, subBase*scale) : 0;
+      titleEl.style.fontSize = titlePx + "px";
+      if (subEl) subEl.style.fontSize = subPx + "px";
+      guard++;
+      if (titlePx <= 11 && (!subEl || subPx <= 10)) break;
+    }
+    titleEl.textContent = "";
+    if (subEl) subEl.textContent = "";
+  }
+  function buildTiles() {
+    var cellCount = ROWS*COLS;
+    gridEl.style.gridTemplateColumns = "repeat("+COLS+", minmax(0, 1fr))";
+    gridEl.style.gridTemplateRows = "repeat("+ROWS+", minmax(0, 1fr))";
+    if (!DATA.length) { gridEl.innerHTML = '<div class="empty-state">Sin datos.</div>'; return; }
+    var target = Math.max(1, Math.round(cellCount/1.8));
+    var desired = Math.min(MAX_PER_WAVE, target, cellCount, DATA.length);
+    var selected = nextWave(desired);
+    if (!selected.length) return;
+    var colors = buildColorAssignment(selected.length);
+    var rects = splitRects({ x:0, y:0, w:COLS, h:ROWS }, selected.length);
+    var imgHeader = findImageHeader(HEADERS);
+    var textHeaders = HEADERS.filter(function (h) { return h !== imgHeader; });
+    var col1 = textHeaders[0], col2 = textHeaders[1];
+    var extraHeaders = textHeaders.slice(2);
+    gridEl.innerHTML = "";
+    selected.forEach(function (row, i) {
+      var tile = document.createElement("div");
+      var rect = rects[i] || { x:0, y:0, w:1, h:1 };
+      tile.className = "tile tile-enter";
+      if (rect.w >= 2 && rect.h >= 2) tile.classList.add("tile-xl");
+      else if (rect.w >= 2 || rect.h >= 2) tile.classList.add("tile-lg");
+      tile.style.gridColumn = (rect.x+1) + " / span " + rect.w;
+      tile.style.gridRow = (rect.y+1) + " / span " + rect.h;
+      tile.style.setProperty("--enter-from", randomEnterTransform());
+      var enterDelay = Math.min(i*45, 500);
+      tile.style.transitionDelay = enterDelay + "ms";
+      applyTileBackground(tile, colors[i], imgHeader ? row[imgHeader] : null);
+      tile.style.color = "#ffffff";
+      var titleText = col1 ? row[col1] : "";
+      var subText = col2 ? row[col2] : "";
+      var titleEl = document.createElement("div");
+      titleEl.className = "tile-title";
+      tile.appendChild(titleEl);
+      var subEl = null;
+      if (col2) {
+        subEl = document.createElement("div");
+        subEl.className = "tile-sub";
+        tile.appendChild(subEl);
+      }
+      if (extraHeaders.length) {
+        var extras = extraHeaders.map(function (h) {
+          var v = row[h];
+          if (v === undefined || v === null || v === "") return "";
+          return '<span class="chip">' + escapeHtml(h) + ": " + escapeHtml(v) + "</span>";
+        }).join("");
+        if (extras) {
+          var extraEl = document.createElement("div");
+          extraEl.className = "tile-extra";
+          extraEl.innerHTML = extras;
+          tile.appendChild(extraEl);
+        }
+      }
+      gridEl.appendChild(tile);
+      shrinkToFit(tile, titleEl, subEl, titleText, subText);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          tile.classList.remove("tile-enter");
+          setTimeout(function () { tile.style.transitionDelay = "0ms"; }, 650 + enterDelay);
+        });
+      });
+      typeText(titleEl, titleText, enterDelay + 350, 32, function () {
+        if (subEl) typeText(subEl, subText, 120, 24);
+      });
+    });
+  }
+  function renderGrid() {
+    if (gridEl.children.length) {
+      gridEl.style.transition = "opacity .2s ease";
+      gridEl.style.opacity = "0";
+      setTimeout(function () { buildTiles(); gridEl.style.opacity = "1"; }, 220);
+    } else {
+      buildTiles();
+    }
+  }
+  renderGrid();
+  setInterval(renderGrid, INTERVAL_MS);
+})();
+</script>
+</body>
+</html>
