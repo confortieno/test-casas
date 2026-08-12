@@ -10,15 +10,15 @@
   .grid { display: grid; grid-auto-flow: dense; gap: 0; width: 100vw; height: 100vh; background: #1a1a19; }
   .tile { padding: 18px 20px; min-height: 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); transition: transform .6s cubic-bezier(.2,.7,.15,1), opacity .5s ease; transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; overflow: hidden; }
   .tile-enter { opacity: 0; transform: var(--enter-from, scale(.82)); }
-  .tile-title, .tile-sub { color: #ffffff; }
-  .tile-title { font-size: clamp(22px, 2.8vw, 38px); font-weight: 700; line-height: 1.15; }
-  .tile-sub { font-size: clamp(20px, 2.6vw, 32px); opacity: .96; }
-  .tile-lg .tile-title { font-size: clamp(28px, 3.6vw, 48px); }
-  .tile-lg .tile-sub { font-size: clamp(24px, 3vw, 36px); }
+  .tile-title { font-size: clamp(22px, 2.7vw, 38px); font-weight: 700; line-height: 1.15; }
+  .tile-sub { font-size: clamp(20px, 2.5vw, 30px); opacity: .96; }
+  .tile-lg .tile-title { font-size: clamp(27px, 3.6vw, 48px); }
+  .tile-lg .tile-sub { font-size: clamp(23px, 3vw, 36px); }
   .tile-xl .tile-title { font-size: clamp(34px, 4.6vw, 60px); }
-  .tile-xl .tile-sub { font-size: clamp(28px, 3.6vw, 44px); }
-  .tile-extra { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip { font-size: 11px; padding: 2px 9px; border-radius: 999px; background: rgba(255,255,255,.28); }
+  .tile-xl .tile-sub { font-size: clamp(27px, 3.8vw, 44px); }
+  .tile-extra { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: 20px; padding: 5px 16px; border-radius: 999px; background: rgba(0,0,0,.38); color: #ffffff; }
+  .tile-caption { align-self: flex-start; max-width: 100%; background: rgba(0,0,0,.55); padding: 12px 18px; border-radius: 12px; }
   .empty-state { color: #898781; display:flex; align-items:center; justify-content:center; height:100%; font-size:16px; }
 </style>
 </head>
@@ -28,12 +28,14 @@
 (function () {
   "use strict";
   var PALETTE = ["#3b3f45","#e35c7b","#82c6ed","#b37f53","#4282b4","#ffd970","#f5cdb7","#c1c56d"];
-  var HEADERS = ["Producto","Funcionalidad","Categoría"];
-  var DATA = [{"Producto":"Nordic SRL","Funcionalidad":"Personas totalmente predispuestas a escuchar nuestras dudas e inquietudes. ","Categoría":"Implementaciones"},{"Producto":"Nordic SRL","Funcionalidad":"Quedamos ampliamente satisfechos con la atención de Gabriela y Mariano muy atentos en todo momento y serviciales a la hora de enseñar.","Categoría":"Implementaciones"},{"Producto":"Audi Buenos Aires","Funcionalidad":"Destaco el profesionalismo de Marcelo, Andrés y Mariano. ","Categoría":"Implementaciones"},{"Producto":"Maxiauto SRL","Funcionalidad":"¡Excelente la asesoría de Melisa y Gabriela!","Categoría":"Implementaciones"},{"Producto":"Equipo negro se impuso por dos goles","Funcionalidad":"La participación de Argutti ha sido clave en la victoria.","Categoría":"Fútbol"},{"Producto":"AVA Documents","Funcionalidad":"Fue el asistente que más halagos recibió en la webinar de lanzamiento.","Categoría":"AVA"},{"Producto":"José Folmer sobre Martín Suarez","Funcionalidad":"Muy atentos, respuestas claras y rápidas.","Categoría":"Posventa"},{"Producto":"Chayé sobre Mariano","Funcionalidad":"Perfecto, Mariano además de resolver el inconveniente, me compartió la solución. Así para la próxima podemos ver si lo resolvemos nosotros antes. Excelente.","Categoría":"Posventa"},{"Producto":"Jalil sobre Guillermo","Funcionalidad":"Excelente atencion de Guillermo. Problema solucionado.","Categoría":"Posventa"},{"Producto":"Costa Motors sobre Julia","Funcionalidad":"Excelente atencion y respuesta de Julia.","Categoría":"Posventa"},{"Producto":"Sudisur sobre Giazmin","Funcionalidad":"El apoyo de Giazmin es fundamental para nosotros.","Categoría":"Posventa"}];
+  var HEADERS = ["Producto","Funcionalidad","Categoría","Imagen"];
+  var DATA = [{"Producto":"Nordic SRL","Funcionalidad":"Personas totalmente predispuestas a escuchar nuestras dudas e inquietudes. ","Categoría":"Implementaciones","Imagen":"https://chile.travel/wp-content/uploads/2025/08/f596ab8c-destinos_tierra-del-fuego.jpg"},{"Producto":"Nordic SRL","Funcionalidad":"Quedamos ampliamente satisfechos con la atención de Gabriela y Mariano muy atentos en todo momento y serviciales a la hora de enseñar.","Categoría":"Implementaciones","Imagen":"https://chile.travel/wp-content/uploads/2025/08/f596ab8c-destinos_tierra-del-fuego.jpg"},{"Producto":"Audi Buenos Aires","Funcionalidad":"Destaco el profesionalismo de Marcelo, Andrés y Mariano. ","Categoría":"Implementaciones","Imagen":"https://usados.audibuenosaires.com/img/concesionario-audi-buenos-aires.png"},{"Producto":"Maxiauto SRL","Funcionalidad":"¡Excelente la asesoría de Melisa y Gabriela!","Categoría":"Implementaciones","Imagen":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSWjRCVzCzWm7kxqGHPAm0p34gf-doKGMBJKMhPb-3UWw&s"},{"Producto":"Equipo negro se impuso por dos goles","Funcionalidad":"La participación de Argutti ha sido clave en la victoria.","Categoría":"Fútbol","Imagen":"https://assets.goal.com/images/v3/getty-2201476691/crop/MM5DKMBQGQ5DEOBRGU5G433XMU5DAORVGIYQ====/GettyImages-2201476691.jpg?auto=webp&format=pjpg&width=3840&quality=60"},{"Producto":"AVA Documents","Funcionalidad":"Fue el asistente que más halagos recibió en la webinar de lanzamiento.","Categoría":"AVA","Imagen":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT4ssZHC-NSVCow33qN9b9se6R3uGb7oG5brIUYvca07ld_Ry3kJBgddmxx&s=10"},{"Producto":"José Folmer sobre Martín Suarez","Funcionalidad":"Muy atentos, respuestas claras y rápidas.","Categoría":"Posventa","Imagen":"https://guialocal-concordia.s3.us-east-2.amazonaws.com/2024/12/Folmer_Concesionario_Oficial_Renault_Concordia_1733279464335-lg.undefined"},{"Producto":"Chayé sobre Mariano","Funcionalidad":"Perfecto, Mariano además de resolver el inconveniente, me compartió la solución. Así para la próxima podemos ver si lo resolvemos nosotros antes. Excelente.","Categoría":"Posventa","Imagen":"https://acjd.com.ar/wp-content/uploads/2016/11/chaye-hnos.jpg"},{"Producto":"Jalil sobre Guillermo","Funcionalidad":"Excelente atencion de Guillermo. Problema solucionado.","Categoría":"Posventa","Imagen":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgTMdxhfrRgVoodr3pnHXytnDgWWVoNEX8xEqiuuqn4Aq-gYM1hLywyE0&s=10"},{"Producto":"Costa Motors sobre Julia","Funcionalidad":"Excelente atencion y respuesta de Julia.","Categoría":"Posventa","Imagen":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSZDEesFtqQUXQaSCKs4tgRZLfp1bUnZSvbjYtE9TLIO_glVKtOSJw7i3Fv&s=10"},{"Producto":"Sudisur sobre Giazmin","Funcionalidad":"El apoyo de Giazmin es fundamental para nosotros.","Categoría":"Posventa","Imagen":"https://images.trvl-media.com/place/6114126/9c668da8-ca15-4a29-bef5-fed4bb957a2c.jpg"}];
   var ROWS = 3;
   var COLS = 4;
-  var INTERVAL_MS = 15000;
-  var MAX_PER_WAVE = 10;
+  var INTERVAL_MS = 25000;
+  var MIN_PER_WAVE = 4;
+  var MAX_PER_WAVE = 5;
+  function randomInt(a,b){ if (b<a){ var t=a; a=b; b=t; } return a + Math.floor(Math.random()*(b-a+1)); }
   var gridEl = document.getElementById("grid");
   function shuffle(arr) { var a = arr.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   var waveQueue = shuffle(DATA);
@@ -50,11 +52,13 @@
   function applyTileBackground(tile, bg, imgUrl) {
     tile.style.backgroundColor = bg;
     if (isHttpUrl(imgUrl)) {
-      tile.style.backgroundImage = "linear-gradient(rgba(0,0,0,.32), rgba(0,0,0,.32)), url(" + JSON.stringify(imgUrl.trim()) + ")";
+      tile.style.backgroundImage = "linear-gradient(rgba(0,0,0,.28), rgba(0,0,0,.28)), url(" + JSON.stringify(imgUrl.trim()) + ")";
       tile.style.backgroundSize = "cover, cover";
       tile.style.backgroundPosition = "center, center";
       tile.style.backgroundRepeat = "no-repeat, no-repeat";
+      return true;
     }
+    return false;
   }
   function escapeHtml(str){ return String(str).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function splitRects(rect, count) {
@@ -112,7 +116,8 @@
     gridEl.style.gridTemplateRows = "repeat("+ROWS+", minmax(0, 1fr))";
     if (!DATA.length) { gridEl.innerHTML = '<div class="empty-state">Sin datos.</div>'; return; }
     var target = Math.max(1, Math.round(cellCount/1.8));
-    var desired = Math.min(MAX_PER_WAVE, target, cellCount, DATA.length);
+    var randomPerWave = randomInt(MIN_PER_WAVE, MAX_PER_WAVE);
+    var desired = Math.min(randomPerWave, target, cellCount, DATA.length);
     var selected = nextWave(desired);
     if (!selected.length) return;
     var colors = buildColorAssignment(selected.length);
@@ -133,24 +138,32 @@
       tile.style.setProperty("--enter-from", randomEnterTransform());
       var enterDelay = Math.min(i*45, 500);
       tile.style.transitionDelay = enterDelay + "ms";
-      applyTileBackground(tile, colors[i], imgHeader ? row[imgHeader] : null);
-      tile.style.color = "#ffffff";
+      var hasImage = applyTileBackground(tile, colors[i], imgHeader ? row[imgHeader] : null);
+      tile.style.color = hasImage ? "#ffffff" : bestTextColor(colors[i]);
       var titleText = col1 ? row[col1] : "";
       var subText = col2 ? row[col2] : "";
       var titleEl = document.createElement("div");
       titleEl.className = "tile-title";
-      tile.appendChild(titleEl);
       var subEl = null;
       if (col2) {
         subEl = document.createElement("div");
         subEl.className = "tile-sub";
-        tile.appendChild(subEl);
+      }
+      if (hasImage) {
+        var captionEl = document.createElement("div");
+        captionEl.className = "tile-caption";
+        captionEl.appendChild(titleEl);
+        if (subEl) captionEl.appendChild(subEl);
+        tile.appendChild(captionEl);
+      } else {
+        tile.appendChild(titleEl);
+        if (subEl) tile.appendChild(subEl);
       }
       if (extraHeaders.length) {
         var extras = extraHeaders.map(function (h) {
           var v = row[h];
           if (v === undefined || v === null || v === "") return "";
-          return '<span class="chip">' + escapeHtml(h) + ": " + escapeHtml(v) + "</span>";
+          return '<span class="chip">' + escapeHtml(v) + "</span>";
         }).join("");
         if (extras) {
           var extraEl = document.createElement("div");
